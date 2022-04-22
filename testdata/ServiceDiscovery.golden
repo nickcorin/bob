@@ -1,0 +1,10 @@
+[
+	{
+		"targets": [
+			"test.example.com:9090"
+		],
+		"labels": {
+			"service": "test"
+		}
+	}
+]

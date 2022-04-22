@@ -1,0 +1,73 @@
+APP					:= {{.Service.Name}}
+COMMIT_HASH			?= $(shell git rev-parse --short HEAD)
+{{if .Go}}
+BIN_DIR				?= {{.Go.BinaryDir}}
+GOMOD				?= {{.Go.Module}}
+GOOS				?= {{.Go.OS}}
+GOARCH				?= {{.Go.Arch}}
+{{- end}}
+
+COMPOSE_FILE		?= ../docker-compose.yml
+DOCKERFILE			?= Dockerfile
+DOCKER_BUILD_FLAGS	?= --no-cache -q -t $(APP):latest -f $(DOCKERFILE) .
+MAKEFILE			?= Makefile
+
+# Contains a list of .go files which have been added or modified.
+GO_FILES			?= $(shell find ../../{{.Service.Name}} -type f -name  "*.go" | uniq)
+
+# Colors for logging.
+OK_COLOR=\033[32;01m
+NO_COLOR=\033[0m
+MAKE_COLOR=\033[36m%-20s\033[0
+
+all: generate{{ if .Go}} test compile build{{end}}
+{{if .Go}}
+build: ## Builds the Docker container and tags it with the commit hash.
+	echo "$(OK_COLOR)==> Building \"$(APP)\".$(NO_COLOR)"
+	docker build $(DOCKER_BUILD_FLAGS)
+	echo "$(OK_COLOR)==> Tagging image $(APP):$(COMMIT_HASH).$(NO_COLOR)"
+	docker tag $(APP):latest $(APP):$(COMMIT_HASH)
+
+compile: ## Compiles the Go binary.
+	echo "$(OK_COLOR)==> Compiling \"$(APP)\".$(NO_COLOR)"
+	mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(BIN_DIR)/$(APP) $(GOMOD)/$(APP)/cmd/$(APP)
+{{end}}
+deploy: ## Deploys the app to the cluster.
+	echo "$(OK_COLOR)==> Deploying \"$(APP)\" to the cluster.$(NO_COLOR)"
+	docker-compose -f $(COMPOSE_FILE) up -d $(APP)
+{{if .Go}}
+fmt: ## Formats the modified Go files.
+	echo "$(OK_COLOR)==> Formatting changes.$(NO_COLOR)"
+	gofumpt -l -s -w -extra $(GO_FILES)
+	gci -w -local $(GOMOD) $(GO_FILES)
+
+generate: ## Generates all code for the service.
+	echo "$(OK_COLOR)==> Generating code for \"$(APP)\".$(NO_COLOR)"
+	go generate $(GOMOD)/$(APP)/...
+	bob --config=bob.json
+	bob --buildDir=../
+{{end}}
+stop: ## Brings down the service from the cluster.
+	echo "$(OK_COLOR)==> Stopping \"$(APP)\".$(NO_COLOR)"
+	docker-compose -f $(COMPOSE_FILE) down $(APP)
+{{if .Go}}
+test: ## Runs all tests within the service.
+	echo "$(OK_COLOR)==> Testing \"$(APP)\".$(NO_COLOR)"
+	go test -cover -race -count=1 $(GOMOD)/$(APP)/...
+{{end}}
+
+help: ## Shows this help.
+	egrep '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(MAKE_COLOR) %s\n", $$1, $$2}'
+
+# To avoid unintended conflicts with file names, always add to .PHONY unless
+# there is a reason not to.
+#
+# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
+.PHONY: all build compile deploy generate stop test
+
+# Adding a target to .SILENT will prevent the echoing of recipes as they're
+# executed without needing to prefix each command with @.
+#
+# https://www.gnu.org/software/make/manual/html_node/Echoing.html
+.SILENT: all build compile deploy generate stop test

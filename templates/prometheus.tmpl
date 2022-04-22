@@ -1,0 +1,60 @@
+{{with .Global -}}	
+global:
+	{{if .ScrapeInterval -}}
+	scrape_interval: {{.ScrapeInterval}}
+	{{- end}}
+	{{if .ScrapeTimeout -}}
+	scrape_timeout: {{.ScrapeTimeout}}
+	{{- end}}
+	{{if .EvaluationInterval -}}
+	evaluation_interval: {{.EvaluationInterval}}
+	{{- end}}
+	{{if .ExternalLabels -}}
+	external_labels:
+		{{range $key, $value := .ExternalLabels}}
+		{{$key}}: {{$value}}
+		{{end}}
+	{{- end}}
+	{{if .QueryLogFile -}}
+	query_log_file: {{.QueryLogFile}}
+	{{- end}}
+{{- end}}
+{{- with .ScrapeConfigs}}
+scrape_configs:
+	{{range $config := . -}}
+  - job_name: {{$config.JobName}}
+	{{- if $config.ScrapeInterval}}
+	scrape_interval: {{$config.ScrapeInterval}}
+	{{- end}}
+	{{- if $config.ScrapeTimeout}}
+	scrape_timeout: {{$config.ScrapeTimeout}}
+	{{- end}}
+    {{- if $config.MetricsPath}}
+    metrics_path: {{$config.MetricsPath}}
+    {{- end}}
+    {{- if $config.HonorLabels}}
+    honor_labels: {{$config.HonorLabels}}
+    {{- end}}
+    {{- if $config.HonorTimestamps}}
+    honor_timestamps: {{$config.HonorTimestamps}}
+    {{- end}}
+	{{- if $config.Scheme}}
+	scheme: {{$config.Scheme}}
+	{{- end}}
+	{{- with $config.StaticConfigs}}
+	  static_configs:
+		{{- range $static := .}}
+	  	- targets:
+	  	{{- range $target := $static.Targets}}
+		  	- {{$target.Host}}:{{$target.Port}}
+		{{- end}}
+		{{if $static.Labels}}
+	  	- labels:
+	  	{{range $key, $value := $static.Labels}}
+		{{$key}}: {{$value}}
+		{{end -}}
+		{{end -}}
+		{{end -}}
+	{{end -}}
+	{{end -}}
+{{end -}}

@@ -1,0 +1,49 @@
+version: "3.9"
+{{if .}}
+services:
+  {{- range $config := .Configs }}
+  {{$config.Service.Name}}:
+    image: {{$config.Docker.Image}}
+    container_name: {{$config.Service.Name}}
+    {{- if $config.Docker.DependsOn}}
+    depends_on:
+    {{- range $dependency := $config.Docker.DependsOn}}
+      - {{$dependency}}
+    {{- end}}
+    {{- end}}
+    restart: {{$config.Docker.RestartPolicy}}
+    hostname: {{$config.Service.Host}}
+    {{- if $config.Service.Ports}}
+    ports:
+    {{- range $port := $config.Service.Ports}}
+      - {{$port}}
+    {{- end}}
+    {{- end}}
+    {{- if $config.Service.Expose}}
+    expose:
+    {{- range $port := $config.Service.Expose}}
+      - {{$port}}
+    {{- end}}
+    {{- end}}
+    {{- if $config.Docker.Volumes}}
+    volumes:
+    {{- range $volume := $config.Docker.Volumes}}
+      - {{$volume.Source}}:{{$volume.Mount}}
+     {{- end}}
+    {{- end}}
+	{{- if $config.Secrets }}
+	env_file: .env
+	environment:
+	{{- range $secret := $config.Secrets}}
+	  - {{$secret}}:{{"${"}}{{$secret}}{{"}"}}
+	{{- end}}
+	{{- end}}
+    {{end}}
+{{if .NamedVolumes}}
+volumes:
+  {{- range $volume := .NamedVolumes}}
+  {{$volume.Source}}:
+    name: {{$volume.Source}}
+  {{- end}}
+{{- end}}
+{{- end}}

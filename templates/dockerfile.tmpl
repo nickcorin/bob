@@ -1,0 +1,7 @@
+FROM golang:1.16.5
+
+COPY {{.Go.BinaryDir}}/{{.Service.Name}} .
+
+CMD ./{{.Service.Name}}{{- range $key, $value := .Flags}} \
+    --{{$key}}={{$value}}
+{{- end}}

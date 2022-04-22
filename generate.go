@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/nickcorin/adventech/bob/templates"
+	"github.com/nickcorin/bob/templates"
 )
 
 //go:generate stringer -type FileType -trimprefix FileType

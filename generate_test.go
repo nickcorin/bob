@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/nickcorin/adventech/bob"
+	"github.com/nickcorin/bob"
 )
 
 var update = flag.Bool("update", false, "Update the golden files")

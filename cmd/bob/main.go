@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/nickcorin/adventech/bob"
+	"github.com/nickcorin/bob"
 )
 
 var (

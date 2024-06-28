@@ -3,24 +3,33 @@ package bob
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
-// LoadConfig reads a JSON configuration file from disk and returns a parsed
-// Config struct.
+// LoadConfig reads a JSON configuration file from disk and returns a parsed Config struct.
 func LoadConfig(path string) (*Config, error) {
-	data, err := ioutil.ReadFile(path)
+	configPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
+		return nil, fmt.Errorf("failed to determine absolute path: %w", err)
+	}
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to stat the path: %w", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	var config Config
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("validate config: %w", err)
+		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
 
 	return &config, nil
@@ -28,12 +37,12 @@ func LoadConfig(path string) (*Config, error) {
 
 // Config contains configuration settings for a service.
 type Config struct {
-	Docker   *DockerConfig          `json:"docker"`
-	Go       *GoConfig              `json:"go,omitempty"`
-	Flags    map[string]interface{} `json:"flags,omitempty"`
-	Secrets  []string               `json:"secrets,omitempty"`
-	Service  *ServiceConfig         `json:"service"`
-	Requires []string               `json:"requires"`
+	Docker   *DockerConfig     `json:"docker"`
+	Go       *GoConfig         `json:"go,omitempty"`
+	Flags    map[string]string `json:"flags,omitempty"`
+	Secrets  []string          `json:"secrets,omitempty"`
+	Service  *ServiceConfig    `json:"service"`
+	Requires []string          `json:"requires"`
 }
 
 func (conf *Config) Validate() error {
@@ -49,8 +58,7 @@ func (conf *Config) Validate() error {
 		return fmt.Errorf("missing required field: docker")
 	}
 
-	// We must validate Docker after Service in case we need to generate the
-	// image name.
+	// We must validate Docker after Service in case we need to generate the image name.
 	if conf.Docker.Image == "" {
 		img, err := generateImageName(conf.Service.Name)
 		if err != nil {
@@ -58,6 +66,12 @@ func (conf *Config) Validate() error {
 		}
 
 		conf.Docker.Image = img
+	}
+
+	if conf.Go != nil {
+		if err := conf.Go.Validate(); err != nil {
+			return fmt.Errorf("validate config.go: %w", err)
+		}
 	}
 
 	return nil
@@ -88,6 +102,27 @@ type GoConfig struct {
 	BinaryDir string `json:"binaryDir,omitempty"`
 	Module    string `json:"module,omitempty"`
 	OS        string `json:"os,omitempty"`
+	Version   string `json:"version,omitempty"`
+}
+
+// Validate ensures that all required fields are populated.
+func (conf *GoConfig) Validate() error {
+	if conf.Arch == "" {
+		return fmt.Errorf("missing required field: go.arch")
+	}
+	if conf.BinaryDir == "" {
+		return fmt.Errorf("missing required field: go.binaryDir")
+	}
+	if conf.Module == "" {
+		return fmt.Errorf("missing required field: go.module")
+	}
+	if conf.OS == "" {
+		return fmt.Errorf("missing required field: go.os")
+	}
+	if conf.Version == "" {
+		return fmt.Errorf("missing required field: go.version")
+	}
+	return nil
 }
 
 // ServiceConfig contains configuration settings about how to run a service.

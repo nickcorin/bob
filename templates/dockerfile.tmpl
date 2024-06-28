@@ -1,4 +1,4 @@
-FROM golang:1.18
+FROM golang:{{.Go.Version}}
 
 COPY {{.Go.BinaryDir}}/{{.Service.Name}} .
 

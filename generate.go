@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -93,12 +92,14 @@ var generators = map[FileType]generator{
 }
 
 func generateImageName(serviceName string) (string, error) {
-	hash, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
-	if err != nil {
-		return "", fmt.Errorf("get commit hash: %w", err)
-	}
+	/*
+		hash, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+		if err != nil {
+			return "", fmt.Errorf("get commit hash: %w", err)
+		}
+	*/
 
-	image := fmt.Sprintf("%s:%s", serviceName, hash)
+	image := fmt.Sprintf("%s:latest", serviceName)
 
 	// We must trim to remove the lurking '\n' characters.
 	return strings.TrimSpace(image), nil
@@ -137,19 +138,9 @@ func findServiceConfigs(buildDir string) ([]string, error) {
 }
 
 func GenerateService(configPath string) error {
-	// Convert the path to an absolute path.
-	configPath, err := filepath.Abs(configPath)
-	if err != nil {
-		return fmt.Errorf("config absolute path: %w", err)
-	}
-
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return fmt.Errorf("stat config: %w", err)
-	}
-
 	conf, err := LoadConfig(configPath)
 	if err != nil {
-		return fmt.Errorf("load config: %w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	// Iteratively generate service files.

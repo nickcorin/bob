@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/nickcorin/bob"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -27,26 +27,15 @@ var (
 // is going to be broken.
 
 func main() {
-	flag.Parse()
+	app := cli.NewApp()
 
-	if *config != "" {
-		if err := bob.GenerateService(*config); err != nil {
-			log.Fatal(err)
-		}
-
-		os.Exit(0)
+	app.Commands = []*cli.Command{
+		&buildKubernetesCmd,
 	}
 
-	if *buildDir != "" {
-		if err := bob.GenerateDockerCompose(*buildDir); err != nil {
-			log.Fatal(err)
-		}
-
-		os.Exit(0)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
-
-	printUsage()
-	os.Exit(2)
 }
 
 func printUsage() {

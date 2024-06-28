@@ -25,6 +25,7 @@ func TestGenerate(t *testing.T) {
 			BinaryDir: "bin",
 			Module:    "github.com/nickcorin/adventech",
 			OS:        "linux",
+			Version:   "1.22.4",
 		},
 		Service: &bob.ServiceConfig{
 			Name:        "test",
@@ -49,7 +50,7 @@ func TestGenerate(t *testing.T) {
 	tmpFile, err := os.Create(filepath.Join(serviceDir, "bob.json"))
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(tmpFile.Name(), configData, 0o755)
+	err = os.WriteFile(tmpFile.Name(), configData, 0o755)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -64,7 +65,7 @@ func TestGenerate(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("generate dockerfile", func(t *testing.T) {
-		actual, err := ioutil.ReadFile(filepath.Join(serviceDir, "Dockerfile"))
+		actual, err := os.ReadFile(filepath.Join(serviceDir, "Dockerfile"))
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
@@ -73,7 +74,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("generate makefile", func(t *testing.T) {
-		actual, err := ioutil.ReadFile(filepath.Join(serviceDir, "Makefile"))
+		actual, err := os.ReadFile(filepath.Join(serviceDir, "Makefile"))
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
@@ -82,7 +83,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("generate service discovery", func(t *testing.T) {
-		actual, err := ioutil.ReadFile(filepath.Join(metricsDir, "test.sd.json"))
+		actual, err := os.ReadFile(filepath.Join(metricsDir, "test.sd.json"))
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
@@ -95,7 +96,7 @@ func assertGolden(t *testing.T, goldenFile string, actual []byte) {
 	t.Helper()
 
 	if *update {
-		err := ioutil.WriteFile(goldenFile, actual, 0o644)
+		err := os.WriteFile(goldenFile, actual, 0o644)
 		require.NoError(t, err)
 		return
 	}
